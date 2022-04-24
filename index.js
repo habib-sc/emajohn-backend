@@ -27,11 +27,30 @@ async function run () {
         
         // Get all product endpoint 
         app.get('/products', async (req, res) => {
+            const page = parseInt(req.query.page);
+            const pageSize = parseInt(req.query.size);
             const query = {};
             const cursor = productsCollection.find(query);
-            const products = await cursor.toArray();
+            let products;
+            if (page || pageSize) {
+                // 0 --> skip: 0 get: 0-10 --> 10;
+                // 1 --> skip: 1*10 get: 11-20 --> 10;
+                // 2 --> skip: 2*20 get: 21-30 --> 10;
+                // 0 --> skip: 3*10 get: 31-40 --> 10;
+                products = await cursor.skip(page*pageSize).limit(pageSize).toArray();
+            }
+            else{
+                products = await cursor.toArray();
+            }
             res.send(products);
         });
+
+        // Get product count endpoint 
+        app.get('/products-count', async (req, res) => {
+            const count = await productsCollection.estimatedDocumentCount();
+            res.send({count}); 
+        });
+
     }
     finally {
 
